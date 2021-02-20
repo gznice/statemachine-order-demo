@@ -18,15 +18,22 @@ import org.springframework.statemachine.state.State;
  */
 @Slf4j
 @Configuration
-@EnableStateMachineFactory
+@EnableStateMachineFactory(name = "orderStateMachine")
 public class SimpleEnumStateMachineConfiguration extends StateMachineConfigurerAdapter<SimpleEnumStateMachineConfiguration.OrderStates, SimpleEnumStateMachineConfiguration.OrderEvents> {
 
+    /**
+     * 状态枚举
+     */
     public enum OrderStates {
         SUBMITTED,
         PAID,
         FULFILLED,
         CANCELLED
     }
+
+    /**
+     * 事件枚举
+     */
     public enum OrderEvents {
         FULFILL,
         PAY,
@@ -45,7 +52,7 @@ public class SimpleEnumStateMachineConfiguration extends StateMachineConfigurerA
         StateMachineListenerAdapter<OrderStates, OrderEvents> adapter = new StateMachineListenerAdapter<OrderStates, OrderEvents>() {
             @Override
             public void stateChanged(State<OrderStates, OrderEvents> from, State<OrderStates, OrderEvents> to) {
-                log.info(String.format("stateChanged(from: %s to: %s)", from + "", to + ""));
+                log.info(String.format("----------【监听适配器，监听状态变化】stateChanged(from: %s to: %s)", from + "", to + ""));
             }
         };
 

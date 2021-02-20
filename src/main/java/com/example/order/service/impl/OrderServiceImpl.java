@@ -4,6 +4,7 @@ import com.example.order.adapter.SimpleEnumStateMachineConfiguration;
 import com.example.order.dao.OrderRepository;
 import com.example.order.entity.Order;
 import com.example.order.service.OrderService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
@@ -24,6 +25,7 @@ import java.util.Date;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class OrderServiceImpl implements OrderService {
 
     public static final String ORDER_ID_HEADER = "orderId";
@@ -39,7 +41,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 支付
+     * 完成
      * @param orderId 订单主键
      * @return
      */
@@ -70,14 +72,24 @@ public class OrderServiceImpl implements OrderService {
                 .setHeader("paymentConfirmationNumber", paymentConfirmationNumber)
                 .build();
 
-        sm.sendEvent(payMessage);
+        boolean b = sm.sendEvent(payMessage);
+        if (b) {
+            log.info("订单{}支付成功", orderId);
+        } else {
+            log.info("订单{}支付失败，订单状态已经变更", orderId);
+        }
         return sm;
+    }
+
+    @Override
+    public Order getById(Long orderId) {
+        return orderRepository.findById(orderId).get();
     }
 
     private StateMachine<SimpleEnumStateMachineConfiguration.OrderStates, SimpleEnumStateMachineConfiguration.OrderEvents> build(Long orderId) {
         Order order = orderRepository.findById(orderId).get();
-        String orderIdKey = Long.toString(order.getId());
-        StateMachine<SimpleEnumStateMachineConfiguration.OrderStates, SimpleEnumStateMachineConfiguration.OrderEvents> sm = this.factory.getStateMachine(orderIdKey);
+//        String orderIdKey = Long.toString(order.getId());
+        StateMachine<SimpleEnumStateMachineConfiguration.OrderStates, SimpleEnumStateMachineConfiguration.OrderEvents> sm = this.factory.getStateMachine("orderStateMachine");
 
         //恢复状态机后恢复状态
         sm.stop();
@@ -89,7 +101,7 @@ public class OrderServiceImpl implements OrderService {
                         //拦截器
                         sma.addStateMachineInterceptor(new StateMachineInterceptorAdapter<SimpleEnumStateMachineConfiguration.OrderStates, SimpleEnumStateMachineConfiguration.OrderEvents>() {
                             /**
-                             * 状态改变之前
+                             * 状态改变之前，持久化状态，业务逻辑不再需要关注订单状态
                              * @param state
                              * @param message
                              * @param transition
@@ -111,7 +123,7 @@ public class OrderServiceImpl implements OrderService {
 
                         //恢复状态
                         sma.resetStateMachine(new DefaultStateMachineContext<>(
-                                order.getOrderState(), null, null, null
+                                order.getOrderState(), null, null, null, null, "orderStateMachine"
                         ));
                     }
                 });

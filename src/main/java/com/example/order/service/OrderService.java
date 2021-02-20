@@ -12,4 +12,6 @@ public interface OrderService {
     StateMachine<SimpleEnumStateMachineConfiguration.OrderStates, SimpleEnumStateMachineConfiguration.OrderEvents> fulfill(Long orderId);
 
     StateMachine<SimpleEnumStateMachineConfiguration.OrderStates, SimpleEnumStateMachineConfiguration.OrderEvents> pay(Long orderId, String paymentConfirmationNumber);
+
+    Order getById(Long orderId);
 }
